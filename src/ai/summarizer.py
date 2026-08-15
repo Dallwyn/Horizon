@@ -57,6 +57,11 @@ LABELS = {
         "tags": "Tags",
         "selected_items": "From {total} items, {selected} important content pieces were selected",
         "empty_analyzed": "Analyzed {total} items, but none met the importance threshold.",
+        "empty_score_missing": (
+            "{count} of those items could not be scored at all (the AI response failed "
+            "to parse) and were excluded before thresholding — this often points to an "
+            "AI provider issue (e.g. rate limit) rather than a quiet news day."
+        ),
         "empty_body": (
             "No significant developments today. This might indicate:\n"
             "- A quiet day in your tracked sources\n"
@@ -77,6 +82,10 @@ LABELS = {
         "tags": "标签",
         "selected_items": "从 {total} 条内容中筛选出 {selected} 条重要资讯。",
         "empty_analyzed": "已分析 {total} 条内容，但没有达到重要性阈值的条目。",
+        "empty_score_missing": (
+            "其中 {count} 条内容因 AI 返回结果解析失败而完全未能评分，已在阈值过滤前排除 —— "
+            "这通常提示 AI 服务出现问题（如触发速率限制），而非当天资讯本身平淡。"
+        ),
         "empty_body": (
             "今日暂无重要动态，可能原因：\n"
             "- 今天关注的信息源较平静\n"
@@ -97,6 +106,12 @@ LABELS = {
         "tags": "Tags",
         "selected_items": "Von {total} Beiträgen wurden {selected} wichtige Inhalte ausgewählt.",
         "empty_analyzed": "{total} Beiträge analysiert, aber keiner hat die Relevanzschwelle erreicht.",
+        "empty_score_missing": (
+            "{count} dieser Beiträge konnten gar nicht bewertet werden (die KI-Antwort ließ "
+            "sich nicht parsen) und wurden schon vor der Schwellenwert-Prüfung ausgeschlossen "
+            "— das deutet häufiger auf ein Problem beim KI-Anbieter (z. B. Rate-Limit) hin als "
+            "auf einen ruhigen Nachrichtentag."
+        ),
         "empty_body": (
             "Heute keine nennenswerten Entwicklungen. Mögliche Gründe:\n"
             "- Ruhiger Tag bei den beobachteten Quellen\n"
@@ -233,6 +248,7 @@ class DailySummarizer:
         date: str,
         total_fetched: int,
         language: str = "en",
+        score_missing_count: int = 0,
     ) -> str:
         """Generate daily summary in Markdown format.
 
@@ -243,6 +259,10 @@ class DailySummarizer:
             date: Date string (YYYY-MM-DD)
             total_fetched: Total number of items fetched before filtering
             language: Output language, either "en" or "zh"
+            score_missing_count: Number of analyzed items whose AI score could not be
+                parsed at all (as opposed to scoring below threshold). Surfaced only
+                in the empty-digest case, to distinguish "quiet day" from "AI provider
+                issue" when nothing made it into the digest.
 
         Returns:
             str: Markdown formatted summary
@@ -250,7 +270,9 @@ class DailySummarizer:
         labels = LABELS.get(language, LABELS["en"])
 
         if not items:
-            return self._generate_empty_summary(date, total_fetched, labels)
+            return self._generate_empty_summary(
+                date, total_fetched, labels, score_missing_count
+            )
 
         header = (
             f"# {labels['header']} - {date}\n\n"
@@ -485,10 +507,22 @@ class DailySummarizer:
 
         return "\n".join(lines) + "\n\n"
 
-    def _generate_empty_summary(self, date: str, total_fetched: int, labels: dict) -> str:
+    def _generate_empty_summary(
+        self,
+        date: str,
+        total_fetched: int,
+        labels: dict,
+        score_missing_count: int = 0,
+    ) -> str:
         """Generate summary when no high-scoring items were found."""
+        diagnostics = ""
+        if score_missing_count:
+            diagnostics = (
+                f"> {labels['empty_score_missing'].format(count=score_missing_count)}\n\n"
+            )
         return (
             f"# {labels['header']} - {date}\n\n"
             f"> {labels['empty_analyzed'].format(total=total_fetched)}\n\n"
+            + diagnostics
             + labels["empty_body"]
         )

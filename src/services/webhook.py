@@ -21,6 +21,19 @@ from ..url_security import UnsafeURLError, safe_request, validate_http_url
 logger = logging.getLogger(__name__)
 
 
+_TITLE_WORDS = {
+    "en": {"daily": "Daily", "collapsible": "Collapsible Daily", "overview": "Overview"},
+    "zh": {"daily": "日报", "collapsible": "折叠日报", "overview": "总览"},
+    "de": {"daily": "Tagesüberblick", "collapsible": "Zusammenklappbarer Tagesüberblick", "overview": "Übersicht"},
+}
+
+
+def _message_title(date: str, lang: str, kind: str) -> str:
+    """Build a consistent "Horizon <date> <kind>" title for any configured language."""
+    words = _TITLE_WORDS.get(lang, _TITLE_WORDS["en"])
+    return f"Horizon {date} {words[kind]}"
+
+
 class WebhookDeliveryStatus(str, Enum):
     DISABLED = "disabled"
     SKIPPED = "skipped"
@@ -432,11 +445,7 @@ class WebhookNotifier:
                 "header": {
                     "title": {
                         "tag": "plain_text",
-                        "content": (
-                            f"Horizon {date} 折叠日报"
-                            if lang == "zh"
-                            else f"Horizon {date} Collapsible Daily"
-                        ),
+                        "content": _message_title(date, lang, "collapsible"),
                     },
                     "template": "blue",
                 },
@@ -482,11 +491,7 @@ class WebhookNotifier:
             return [
                 {
                     **base_vars,
-                    "message_title": (
-                        f"Horizon {date} 折叠日报"
-                        if lang == "zh"
-                        else f"Horizon {date} Collapsible Daily"
-                    ),
+                    "message_title": _message_title(date, lang, "collapsible"),
                     "message_kind": "collapsible",
                     "summary": self._build_feishu_collapsible_overview(
                         item_count=len(important_items),
@@ -515,11 +520,7 @@ class WebhookNotifier:
             )
             overview_message = {
                 **base_vars,
-                "message_title": (
-                    f"Horizon {date} 总览"
-                    if lang == "zh"
-                    else f"Horizon {date} Overview"
-                ),
+                "message_title": _message_title(date, lang, "overview"),
                 "message_kind": "overview",
                 "summary": overview,
             }
@@ -565,9 +566,7 @@ class WebhookNotifier:
         return [
             {
                 **base_vars,
-                "message_title": (
-                    f"Horizon {date} 日报" if lang == "zh" else f"Horizon {date} Daily"
-                ),
+                "message_title": _message_title(date, lang, "daily"),
                 "message_kind": "summary",
                 "summary": summary,
             }
@@ -788,7 +787,7 @@ class WebhookNotifier:
         date: str,
         lang: str,
         summarizer: DailySummarizer,
-    ) -> None:
+    ) -> List[WebhookDeliveryResult]:
         """Send daily summary webhook notification.
 
         Handles language filtering, delivery mode (summary vs summary_and_items),
@@ -801,6 +800,11 @@ class WebhookNotifier:
             date: Date string (YYYY-MM-DD)
             lang: Language code ("en" or "zh")
             summarizer: DailySummarizer instance for generating webhook overviews
+
+        Returns:
+            One WebhookDeliveryResult per message that was attempted, so callers
+            can detect a partial failure instead of treating any completed run as
+            a success.
         """
         messages = self.build_daily_summary_messages(
             summary=summary,
@@ -815,13 +819,29 @@ class WebhookNotifier:
                 f"{self.icons['webhook_skip']} Skipping {lang.upper()} webhook notification "
                 f"(filtered by webhook.languages)"
             )
-            return
+            return []
 
         self.console.print(
             f"{self.icons['webhook']} Sending {lang.upper()} webhook notification..."
         )
-        for message in messages:
-            await self.notify(message)
+        results = [await self.notify(message) for message in messages]
+
+        failures = [result for result in results if not result.sent]
+        if failures:
+            detail = "; ".join(
+                f"{result.status.value}" + (f": {result.detail}" if result.detail else "")
+                for result in failures
+            )
+            logger.warning(
+                "Webhook delivery partially failed for %s: %d/%d messages failed (%s)",
+                lang, len(failures), len(results), detail,
+            )
+            self.console.print(
+                f"[red]{self.icons['webhook']} {len(failures)}/{len(results)} {lang.upper()} "
+                f"webhook messages failed to deliver ({detail})[/red]"
+            )
+
+        return results
 
     async def send_failure(
         self,

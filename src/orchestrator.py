@@ -292,6 +292,17 @@ class HorizonOrchestrator:
             # 6. Search related stories + enrich with background knowledge (2nd AI pass)
             await self.enrich_items(important_items)
 
+            # Items whose AI score could never be parsed are indistinguishable from
+            # "below threshold" once filtered — surface the count separately so an
+            # empty digest can point at an AI-provider issue instead of a quiet day.
+            score_missing_count = sum(
+                1
+                for item in analyzed_items
+                if item.processing
+                and item.processing.analysis
+                and item.processing.analysis.score is None
+            )
+
             # 7. Generate and save daily summaries for each configured language
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             for lang in self.config.ai.languages:
@@ -299,7 +310,13 @@ class HorizonOrchestrator:
                     profile_names=self.profiles.names,
                     profile_order=self.config.digest.profile_order,
                 )
-                summary = await summarizer.generate_summary(important_items, today, len(all_items), language=lang)
+                summary = await summarizer.generate_summary(
+                    important_items,
+                    today,
+                    len(all_items),
+                    language=lang,
+                    score_missing_count=score_missing_count,
+                )
 
                 # Save to data/summaries/
                 summary_path = self.storage.save_daily_summary(today, summary, language=lang)
@@ -734,9 +751,22 @@ class HorizonOrchestrator:
         )
 
         if log:
+            score_missing = sum(
+                1
+                for item in items
+                if item.processing
+                and item.processing.analysis
+                and item.processing.analysis.score is None
+            )
+            missing_note = (
+                f" ({score_missing} excluded due to unparseable AI score, "
+                "not below threshold)"
+                if score_missing
+                else ""
+            )
             self.console.print(
                 f"{self.icons['filter']} Selected {len(threshold_items)} items "
-                "with profile filters\n"
+                f"with profile filters{missing_note}\n"
             )
 
         deduped_items = threshold_items

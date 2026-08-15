@@ -218,13 +218,14 @@ class ContentEnricher:
         if not item.processing or not item.processing.analysis:
             raise ValueError("Item must be analyzed before enrichment")
         profile = self.profiles.get(item.processing.classification.profile)
-        for language in self.languages:
-            item.processing.artifacts.pop(language, None)
         tool_results = await self._plan_and_execute_tools(item, profile)
         sources = self._sources_from_tool_results(tool_results)
 
-        artifacts = {}
         for language in self.languages:
+            # Drop this language's stale artifact right before regenerating it, so a
+            # failure below removes only the target language, not languages that
+            # already succeeded in this run or weren't touched at all.
+            item.processing.artifacts.pop(language, None)
             generated = await self._generate_artifact(
                 item, profile, language, tool_results
             )
@@ -239,13 +240,12 @@ class ContentEnricher:
                 for block in generated.blocks
                 for source_id in block.source_refs
             }
-            artifacts[language] = ContentArtifact(
+            item.processing.artifacts[language] = ContentArtifact(
                 language=language,
                 title=generated.title,
                 blocks=generated.blocks,
                 sources=[source for source in sources.values() if source.id in referenced],
             )
-        item.processing.artifacts.update(artifacts)
 
     @staticmethod
     def _expand_request_source_refs(

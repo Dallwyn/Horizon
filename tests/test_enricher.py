@@ -459,6 +459,71 @@ def test_failed_reenrichment_removes_stale_target_artifact():
     assert "en" not in item.processing.artifacts
 
 
+def test_failed_language_does_not_discard_other_languages_artifact():
+    """A validation failure on one language must not wipe artifacts already
+    generated for another language in the same enrichment run."""
+    valid_en = json.dumps(
+        {
+            "title": "A technical story",
+            "blocks": [
+                {
+                    "id": "background",
+                    "title": "Background",
+                    "content": "The corrected background and constraints.",
+                    "source_refs": [],
+                },
+                {
+                    "id": "solution",
+                    "title": "Solution and results",
+                    "content": "The implementation produced a measured result.",
+                    "source_refs": [],
+                },
+                {
+                    "id": "takeaway",
+                    "title": "Takeaway",
+                    "content": "The method has a clear bounded use.",
+                    "source_refs": [],
+                },
+            ],
+        }
+    )
+    invalid_zh = json.dumps(
+        {
+            "title": "A technical story",
+            "blocks": [
+                {
+                    "id": "story",
+                    "type": "section",
+                    "title": "",
+                    "content": "",
+                    "source_refs": [],
+                }
+            ],
+        }
+    )
+    calls = {"count": 0}
+
+    async def complete(**kwargs):
+        calls["count"] += 1
+        return valid_en if calls["count"] == 1 else invalid_zh
+
+    item = make_item()
+    item.profile = "tech-blog"
+    item.processing.classification.profile = "tech-blog"
+    enricher = ContentEnricher(
+        SimpleNamespace(complete=complete),
+        PROFILES,
+        ["en", "zh"],
+        tools=FakeTools(),
+    )
+
+    with pytest.raises(ValueError, match="Invalid enrichment artifact"):
+        asyncio.run(enricher._enrich_item(item))
+
+    assert item.processing.artifacts["en"].blocks[0].id == "background"
+    assert "zh" not in item.processing.artifacts
+
+
 def test_enrichment_rejects_cross_block_source_reference():
     block = ContentBlock(
         id="summary",
