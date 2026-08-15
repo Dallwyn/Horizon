@@ -20,6 +20,7 @@ class SourceType(str, Enum):
     OSSINSIGHT = "ossinsight"
     GDELT = "gdelt"
     GOOGLE_NEWS = "google_news"
+    ANTHROPIC = "anthropic"
 
 
 class SourceDefinition(NamedTuple):
@@ -41,6 +42,7 @@ SOURCE_REGISTRY = {
     SourceType.OSSINSIGHT.value: SourceDefinition("ossinsight"),
     SourceType.GDELT.value: SourceDefinition("gdelt"),
     SourceType.GOOGLE_NEWS.value: SourceDefinition("google_news"),
+    SourceType.ANTHROPIC.value: SourceDefinition("anthropic"),
 }
 
 ProfileRoute = Optional[Union[str, List[str]]]
@@ -436,6 +438,26 @@ class GoogleNewsConfig(BaseModel):
     profile: ProfileRoute = None
 
 
+class AnthropicNewsConfig(BaseModel):
+    """Anthropic news source configuration.
+
+    Anthropic publishes no RSS/Atom feed, so this scraper parses the
+    `/news` listing page directly and follows each `/news/<slug>` link
+    found there. The listing only gives day-granularity dates, which is
+    too coarse to gate inclusion against a rolling `time_window_hours`
+    cutoff without risking missed or duplicate items, so novelty is
+    tracked by persisting seen slugs in `<data-dir>/anthropic_seen_slugs.json`
+    instead of relying on published-date filtering.
+    """
+
+    enabled: bool = False
+    url: str = "https://www.anthropic.com/news"
+    max_items: int = 20
+    content_extractor: Optional[str] = None
+    category: Optional[str] = None
+    profile: ProfileRoute = None
+
+
 class SourcesConfig(BaseModel):
     """All sources configuration."""
 
@@ -449,6 +471,7 @@ class SourcesConfig(BaseModel):
     ossinsight: OSSInsightConfig = Field(default_factory=OSSInsightConfig)
     gdelt: Optional[GDELTConfig] = None
     google_news: Optional[GoogleNewsConfig] = None
+    anthropic: Optional[AnthropicNewsConfig] = None
 
 
 class WebhookConfig(BaseModel):

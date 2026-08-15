@@ -88,6 +88,26 @@ LABELS = {
             "3. 检查 AI 模型是否正常工作\n"
         ),
     },
+    "de": {
+        "header": "Horizon Tagesüberblick",
+        "source": "Quelle",
+        "background": "Hintergrund",
+        "discussion": "Diskussion",
+        "references": "Quellenangaben",
+        "tags": "Tags",
+        "selected_items": "Von {total} Beiträgen wurden {selected} wichtige Inhalte ausgewählt.",
+        "empty_analyzed": "{total} Beiträge analysiert, aber keiner hat die Relevanzschwelle erreicht.",
+        "empty_body": (
+            "Heute keine nennenswerten Entwicklungen. Mögliche Gründe:\n"
+            "- Ruhiger Tag bei den beobachteten Quellen\n"
+            "- Die konfigurierte Bewertungsschwelle ist zu hoch\n"
+            "- Die Quellenauswahl sollte erweitert werden\n\n"
+            "Mögliche Maßnahmen:\n"
+            "1. Schwellenwert des Profils senken\n"
+            "2. Weitere, vielfältigere Quellen ergänzen\n"
+            "3. Prüfen, ob das KI-Modell korrekt funktioniert\n"
+        ),
+    },
 }
 
 

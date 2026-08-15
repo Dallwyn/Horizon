@@ -1,0 +1,80 @@
+name: Daily Horizon Summary
+
+on:
+  schedule:
+    # GitHub scheduled workflows use UTC. 05:00 UTC = 07:00 Europe/Berlin
+    # during CEST (summer). During CET (winter, roughly late Oct-late Mar)
+    # this instead lands at 06:00 Europe/Berlin, one hour early, since a
+    # single cron expression cannot follow DST. GitHub Actions cron is also
+    # best-effort and can run a few minutes late under load.
+    - cron: '0 5 * * *'
+  workflow_dispatch:      # Allow manual trigger
+
+jobs:
+  daily-summary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to commit changes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.26"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Prepare GitHub Actions config
+        run: cp data/config.github.json data/config.json
+
+      - name: Prepare subscriber list
+        # data/subscribers.json is gitignored on purpose (it can hold real
+        # recipient addresses) and this repo is public, so the recipient is
+        # written here from a secret at runtime instead of being committed.
+        env:
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+        run: |
+          python3 -c "import json, os; json.dump([os.environ['EMAIL_RECIPIENT']], open('data/subscribers.json', 'w'), indent=2)"
+
+      - name: Run Horizon
+        env:
+          # Map secrets to environment variables expected by config.json
+          # Modify these based on your data/config.github.json provider settings
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: uv run horizon --hours 24
+
+      - name: Set current date as environment variable
+        run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Persist Anthropic dedup state
+        # anthropic_seen_slugs.json is not part of the GitHub Pages output,
+        # so it must be committed back to main explicitly or every run
+        # would start from a fresh checkout with no memory of prior runs.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f data/anthropic_seen_slugs.json ]; then
+            git add data/anthropic_seen_slugs.json
+            git diff --cached --quiet || git commit -m "chore: update Anthropic dedup state ${{ env.DATE }}"
+            git push || echo "Nothing to push"
+          fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          keep_files: true  # Keep existing summaries on gh-pages branch
+          commit_message: "📝 Daily Summary: ${{ env.DATE }}"
+          publish_branch: gh-pages
+          enable_jekyll: true

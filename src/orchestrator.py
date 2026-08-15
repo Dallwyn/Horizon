@@ -26,6 +26,7 @@ from .scrapers.openbb import OpenBBScraper
 from .scrapers.ossinsight import OSSInsightScraper
 from .scrapers.gdelt import GDELTScraper
 from .scrapers.google_news import GoogleNewsScraper
+from .scrapers.anthropic_news import AnthropicNewsScraper
 from .ai.client import create_ai_client
 from .ai.analyzer import ContentAnalyzer
 from .ai.summarizer import DailySummarizer
@@ -481,6 +482,20 @@ class HorizonOrchestrator:
             if self.config.sources.google_news and self.config.sources.google_news.enabled:
                 gn_scraper = GoogleNewsScraper(self.config.sources.google_news, client)
                 tasks.append(self._fetch_with_progress("Google News", gn_scraper, since))
+
+            # Anthropic news listing (no official RSS feed)
+            if self.config.sources.anthropic and self.config.sources.anthropic.enabled:
+                from .extractors import ExtractorRegistry
+
+                anthropic_scraper = AnthropicNewsScraper(
+                    self.config.sources.anthropic,
+                    client,
+                    state_path=self.storage.data_dir / "anthropic_seen_slugs.json",
+                    extractors=ExtractorRegistry(self.config.extractors),
+                )
+                tasks.append(
+                    self._fetch_with_progress("Anthropic News", anthropic_scraper, since)
+                )
 
             # Fetch all concurrently
             outcomes = await asyncio.gather(*tasks)

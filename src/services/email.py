@@ -172,6 +172,15 @@ class EmailManager:
             else f"<pre>{safe_summary}</pre>"
         )
 
+        # Only advertise the reply-to-unsubscribe flow when IMAP checking is
+        # actually on to process it; otherwise the reply would be silently
+        # dropped, which is misleading rather than a real feature.
+        unsubscribe_line = (
+            f'<p>To unsubscribe, please reply with "{self.config.unsubscribe_keyword}"</p>'
+            if self.config.imap_enabled
+            else ""
+        )
+
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -190,7 +199,7 @@ class EmailManager:
             {html_content}
             <div class="footer">
                 <p>Sent by {self.config.sender_name}</p>
-                <p>To unsubscribe, please reply with "{self.config.unsubscribe_keyword}"</p>
+                {unsubscribe_line}
             </div>
         </body>
         </html>
