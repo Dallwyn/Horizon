@@ -5,6 +5,27 @@ import re
 from typing import Optional
 
 
+def unwrap_retry_error(exc: BaseException) -> BaseException:
+    """Return the underlying cause of a tenacity RetryError, if any.
+
+    ``str(RetryError(...))`` only prints a Future repr (e.g.
+    ``RetryError[<Future ... state=finished raised ClientError>]``), which
+    hides the actual provider error message needed to tell a bad API key
+    apart from a real rate limit. Retries elsewhere in this project use
+    ``tenacity.retry``, so this unwraps duck-typed ``last_attempt`` futures
+    rather than importing tenacity just for an isinstance check.
+    """
+    last_attempt = getattr(exc, "last_attempt", None)
+    if last_attempt is not None and hasattr(last_attempt, "exception"):
+        try:
+            cause = last_attempt.exception()
+        except Exception:
+            cause = None
+        if cause is not None:
+            return cause
+    return exc
+
+
 def parse_json_response(response: str) -> Optional[dict]:
     """Try multiple strategies to extract a JSON object from an AI response.
 

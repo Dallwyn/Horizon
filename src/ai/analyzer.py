@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 from .client import AIClient
 from .classifier import ContentClassifier
 from .prompting.analysis import analysis_system_prompt, analysis_user_prompt
-from .utils import parse_json_response
+from .utils import parse_json_response, unwrap_retry_error
 from ..models import ContentAnalysis, ContentItem
 from ..processing.content import select_content, split_content
 from ..processing.profiles import ProfileRegistry
@@ -64,7 +64,7 @@ class ContentAnalyzer:
                 try:
                     await self._analyze_item(item)
                 except Exception as e:
-                    logger.error("Error analyzing item %s: %s", item.id, e)
+                    logger.error("Error analyzing item %s: %s", item.id, unwrap_retry_error(e))
                     if item.processing:
                         item.processing.analysis = ContentAnalysis(
                             score=None,

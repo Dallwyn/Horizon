@@ -28,7 +28,7 @@ from .prompting.enrichment import (
     tool_planning_prompt,
     tool_results_text,
 )
-from .utils import parse_json_response
+from .utils import parse_json_response, unwrap_retry_error
 from ..models import ArtifactSource, ContentArtifact, ContentBlock, ContentItem
 from ..processing.profiles import LoadedProfile, ProfileBlock, ProfileRegistry
 from ..processing.tools import ToolRegistry, ToolResult
@@ -188,7 +188,7 @@ class ContentEnricher:
                 try:
                     await self._enrich_item(item)
                 except Exception as exc:
-                    logger.error("Error enriching item %s: %s", item.id, exc)
+                    logger.error("Error enriching item %s: %s", item.id, unwrap_retry_error(exc))
                     return item.id, exc
                 finally:
                     progress.advance(task_id)
