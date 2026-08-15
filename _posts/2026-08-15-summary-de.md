@@ -5,7 +5,7 @@ date: 2026-08-15
 lang: de
 ---
 
-> 17 Beiträge analysiert, aber keiner hat die Relevanzschwelle erreicht.
+> 4 Beiträge analysiert, aber keiner hat die Relevanzschwelle erreicht.
 
 Heute keine nennenswerten Entwicklungen. Mögliche Gründe:
 - Ruhiger Tag bei den beobachteten Quellen
