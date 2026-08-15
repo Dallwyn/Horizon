@@ -49,6 +49,26 @@ Alles in [`data/config.github.json`](data/config.github.json) unter `sources`.
   bringt das nichts, da die Seite clientseitig gerendert wird).
 - **Anthropic-Quelle deaktivieren:** `sources.anthropic.enabled: false`.
 
+### Zu wenig (oder zu viel) kommt durch
+
+Zwei unabhängige Stellschrauben in `data/config.github.json`, beide unter
+`processing.profile_settings`:
+
+- **`tech-news.threshold` (aktuell 7.0):** gilt für OpenAI/DeepMind/Anthropic.
+  Bewusst hoch, weil die Rubrik in `profiles/tech-news/analysis.md` nach
+  "bahnbrechend/wichtige Ankündigung" fragt — für echte Firmen-Announcements
+  angemessen.
+- **`tech-blog.threshold` (aktuell 4.5):** gilt für alle 6 YouTube-Kanäle. Die
+  Rubrik in `profiles/tech-blog/analysis.md` fragt stattdessen "lohnt sich das
+  gründliche Lesen/Ansehen, bringt es mir übertragbares Wissen" — deutlich
+  passender für Tutorial-/Praxis-Content als der "bahnbrechend"-Maßstab von
+  tech-news, unter dem die YouTube-Kanäle anfangs kaum etwas durchließen.
+
+Threshold-Werte: `0`–`10`, oder `null` für "kein Filter" (dann kommt alles
+durch, was thematisch passt — kann an ruhigen Tagen sehr viel Rauschen sein).
+Ein Blick in die jeweilige `analysis.md`-Rubrik hilft einzuschätzen, welcher
+Wert realistisch ist, bevor man an der Zahl dreht.
+
 Aktuell konfigurierte Kanal-IDs (verifiziert per RSS-Feed-Titel-Abgleich):
 
 | Kanal | Channel-ID |

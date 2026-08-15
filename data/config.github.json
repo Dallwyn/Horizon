@@ -6,7 +6,9 @@
     "temperature": 0.3,
     "max_tokens": 8192,
     "throttle_sec": 4.5,
-    "languages": ["de"],
+    "languages": [
+      "de"
+    ],
     "analysis_concurrency": 1,
     "enrichment_concurrency": 1
   },
@@ -17,6 +19,10 @@
       "tech-news": {
         "threshold": 7.0,
         "topic_dedup": true
+      },
+      "tech-blog": {
+        "threshold": 4.5,
+        "topic_dedup": false
       }
     }
   },
@@ -42,42 +48,42 @@
         "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCdoTbckiMelGtWvGMfhlkgQ",
         "enabled": true,
         "category": "youtube-ai",
-        "profile": "tech-news"
+        "profile": "tech-blog"
       },
       {
         "name": "Everlast AI",
         "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC8T5gQ4U4GbI2h8kYCkEcvg",
         "enabled": true,
         "category": "youtube-ai",
-        "profile": "tech-news"
+        "profile": "tech-blog"
       },
       {
         "name": "Y Combinator",
         "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCcefcZRL2oaA_uBNeo5UOWg",
         "enabled": true,
         "category": "youtube-ai",
-        "profile": "tech-news"
+        "profile": "tech-blog"
       },
       {
         "name": "Nate Herk | AI Automation",
         "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC2ojq-nuP8ceeHqiroeKhBA",
         "enabled": true,
         "category": "youtube-ai",
-        "profile": "tech-news"
+        "profile": "tech-blog"
       },
       {
         "name": "AI Impact",
         "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCnNA2EuEVybpo3WGEace4HQ",
         "enabled": true,
         "category": "youtube-ai",
-        "profile": "tech-news"
+        "profile": "tech-blog"
       },
       {
         "name": "Christoph Magnussen",
         "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCDx6L69jmKBJbNu5GnkCilg",
         "enabled": true,
         "category": "youtube-ai",
-        "profile": "tech-news"
+        "profile": "tech-blog"
       },
       {
         "name": "OpenAI News",
@@ -110,7 +116,10 @@
   },
   "digest": {
     "max_items": 25,
-    "profile_order": ["tech-news"]
+    "profile_order": [
+      "tech-news",
+      "tech-blog"
+    ]
   },
   "email": {
     "enabled": true,
