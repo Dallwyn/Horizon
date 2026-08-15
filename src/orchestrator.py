@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 from urllib.parse import unquote_plus, urlsplit
+from zoneinfo import ZoneInfo
 import httpx
 from rich.console import Console
 
@@ -304,7 +305,7 @@ class HorizonOrchestrator:
             )
 
             # 7. Generate and save daily summaries for each configured language
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = self._report_date()
             for lang in self.config.ai.languages:
                 summarizer = DailySummarizer(
                     profile_names=self.profiles.names,
@@ -412,11 +413,21 @@ class HorizonOrchestrator:
             # Send webhook failure notification if configured
             if self.webhook_notifier:
                 await self.webhook_notifier.send_failure(
-                    date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    date=self._report_date(),
                     error_message=str(e),
                 )
 
             raise
+
+    def _report_date(self) -> str:
+        """Return today's date in the configured reporting timezone.
+
+        Fetch windows stay UTC-based; this only labels the run. Without it a run
+        near a UTC day boundary is filed under a different calendar day than the
+        one the reader is actually in.
+        """
+        tz_name = getattr(self.config, "report_timezone", "UTC")
+        return datetime.now(ZoneInfo(tz_name)).strftime("%Y-%m-%d")
 
     def _determine_time_window(self, force_hours: int = None) -> datetime:
         if force_hours:

@@ -62,3 +62,8 @@ logs/*.log
 todo.txt
 .ruff_cache
 .pytest_cache
+
+# coverage
+.coverage
+coverage.xml
+htmlcov/

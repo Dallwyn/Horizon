@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 from enum import Enum
 import re
 from typing import Annotated, Literal, Optional, List, Dict, Any, NamedTuple, Union
-from pydantic import BaseModel, ConfigDict, HttpUrl, Field, field_validator
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from pydantic import BaseModel, ConfigDict, HttpUrl, Field, field_validator, model_validator
 
 
 class SourceType(str, Enum):
@@ -621,6 +622,34 @@ class DigestConfig(BaseModel):
             raise ValueError("digest.profile_order entries must be unique")
         return value
 
+    @field_validator("default_group")
+    @classmethod
+    def validate_default_group(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("digest.default_group must be a non-empty string")
+        return value
+
+    @model_validator(mode="after")
+    def validate_default_group_not_shadowed(self) -> "DigestConfig":
+        """Reject a default_group that silently disables default_group_limit.
+
+        Overlapping categories across groups stay a warning with documented
+        "first group wins" semantics, but pointing default_group at a configured
+        group while also setting default_group_limit is contradictory: uncategorized
+        items would take that group's limit and default_group_limit would never
+        apply, with nothing in the output saying so.
+        """
+        if (
+            self.default_group in self.category_groups
+            and self.default_group_limit is not None
+        ):
+            raise ValueError(
+                f"digest.default_group '{self.default_group}' is also a configured "
+                "category group, so digest.default_group_limit would never take "
+                "effect. Rename default_group or drop default_group_limit."
+            )
+        return self
+
 
 class Config(BaseModel):
     """Main configuration model."""
@@ -636,3 +665,20 @@ class Config(BaseModel):
     extractors: Dict[str, ExtractorConfig] = Field(default_factory=dict)
     email: Optional[EmailConfig] = None
     webhook: Optional[WebhookConfig] = None
+    # IANA timezone deciding which calendar day a run is labelled with. Fetch
+    # windows stay UTC-based; this only affects the date in summary filenames,
+    # headings, email subjects and webhook payloads. Defaults to UTC so existing
+    # setups keep their current behaviour.
+    report_timezone: str = "UTC"
+
+    @field_validator("report_timezone")
+    @classmethod
+    def validate_report_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(
+                f"report_timezone '{value}' is not a valid IANA timezone name "
+                "(e.g. 'UTC', 'Europe/Berlin')"
+            ) from exc
+        return value

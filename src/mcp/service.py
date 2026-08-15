@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from zoneinfo import ZoneInfo
 
 from rich.console import Console
 
@@ -552,7 +553,9 @@ class HorizonPipelineService:
         )
 
         total_fetched = self._total_fetched(run_id, fallback=len(items))
-        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date_str = datetime.now(
+            ZoneInfo(getattr(ctx.config, "report_timezone", "UTC"))
+        ).strftime("%Y-%m-%d")
 
         summarizer = ctx.runtime.DailySummarizer(
             profile_names=self._profiles(ctx).names,

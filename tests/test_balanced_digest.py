@@ -250,11 +250,34 @@ def test_duplicate_category_warns_and_first_group_wins() -> None:
         {"category_groups": {"ai": {"limit": 1, "categories": []}}},
         {"profile_order": ["tech-news", "tech-news"]},
         {"profile_order": ["tech-news", ""]},
+        {"default_group": ""},
+        {"default_group": "   "},
     ],
 )
 def test_digest_config_rejects_invalid_values(kwargs) -> None:
     with pytest.raises(ValidationError):
         DigestConfig(**kwargs)
+
+
+def test_digest_config_rejects_default_group_shadowed_by_category_group() -> None:
+    """default_group_limit would silently never apply, so reject the combination."""
+    with pytest.raises(ValidationError, match="would never take effect"):
+        DigestConfig(
+            category_groups={"other": CategoryGroupConfig(limit=2, categories=["ai"])},
+            default_group="other",
+            default_group_limit=3,
+        )
+
+
+def test_digest_config_allows_default_group_as_category_group_without_limit() -> None:
+    """Without default_group_limit the merge is unambiguous, so it stays allowed."""
+    config = DigestConfig(
+        category_groups={"other": CategoryGroupConfig(limit=2, categories=["ai"])},
+        default_group="other",
+    )
+
+    assert config.default_group == "other"
+    assert config.default_group_limit is None
 
 
 def test_run_applies_balanced_digest_before_enrichment(tmp_path, monkeypatch) -> None:

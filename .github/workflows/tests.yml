@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.26"
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run tests
+        # No API keys are provided: the suite must stay hermetic. A test that
+        # starts needing network or a live provider should be marked and skipped
+        # rather than silently turning this job into a flaky integration run.
+        run: uv run pytest -q --cov=src --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        # Kept as an artifact rather than wired to a coverage service, so the
+        # numbers are inspectable without adding a third-party dependency.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn

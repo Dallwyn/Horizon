@@ -113,6 +113,14 @@ Zeitzonen und folgt der Sommer-/Winterzeit-Umstellung nicht automatisch:
 GitHub Actions Cron ist zusätzlich "best effort" und kann unter Last einige
 Minuten später als geplant starten.
 
+Davon unabhängig ist die **Datumsbeschriftung** der Mail: `report_timezone` in
+[`data/config.github.json`](data/config.github.json) steht auf `Europe/Berlin`.
+Damit richtet sich das Datum in Betreff, Überschrift und Dateiname nach der
+Berliner Kalenderwoche statt nach UTC. Ohne diese Einstellung (Default `UTC`)
+würde ein Lauf, der nach 00:00 Berliner Zeit aber vor 00:00 UTC startet, noch
+unter dem Vortag abgelegt. Das Abholfenster (`time_window_hours`) bleibt
+unabhängig davon UTC-basiert.
+
 ## Erkennen, wenn das kostenlose Kontingent aufgebraucht ist
 
 Zwei Signale:

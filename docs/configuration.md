@@ -570,6 +570,23 @@ The runtime `collection` section controls the fetch window and contains only
 
 - `time_window_hours`: Fetch content from last N hours
 
+### Reporting Timezone
+
+The top-level `report_timezone` decides which calendar day a run is labelled
+with. It defaults to `UTC`:
+
+```json
+{
+  "report_timezone": "Europe/Berlin"
+}
+```
+
+It accepts any IANA timezone name and is validated at config load. It affects
+only the date shown in summary filenames, summary headings, email subjects and
+webhook payloads — the fetch window stays UTC-based and is unchanged by this
+setting. Set it when your run time is close to a UTC day boundary, otherwise a
+run can be filed under a different calendar day than the reader's own.
+
 The runtime `digest` section controls final section order and optional balanced
 digest limits:
 
@@ -606,7 +623,10 @@ digest limits:
   analysis score, highest first.
 - `category_groups.*.name`: Optional display name used in run logs
 - `default_group`: Group key for items whose category does not match any
-  configured group. Default is `other`.
+  configured group. Default is `other`. Must be non-empty. Setting it to a key
+  that also exists in `category_groups` while `default_group_limit` is set is
+  rejected, because the group's own limit would apply and `default_group_limit`
+  would silently never take effect.
 - `default_group_limit`: Optional positive limit for unmatched items. If omitted,
   unmatched items are unlimited except for `max_items`.
 
