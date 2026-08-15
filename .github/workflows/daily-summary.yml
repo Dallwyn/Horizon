@@ -51,9 +51,7 @@ jobs:
           # Modify these based on your data/config.github.json provider settings
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        # TEMP: -l DEBUG to diagnose the Gemini ClientError from the first
-        # test run; revert to default (no -l flag = WARNING) once fixed.
-        run: uv run horizon --hours 24 -l DEBUG
+        run: uv run horizon --hours 24
 
       - name: Set current date as environment variable
         run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV

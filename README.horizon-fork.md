@@ -64,8 +64,20 @@ Aktuell konfigurierte Kanal-IDs (verifiziert per RSS-Feed-Titel-Abgleich):
 
 `data/config.github.json` → `ai.model`. Der Feldwert wird ungeprüft an die
 Gemini-API durchgereicht (kein Allowlist im Code), also funktioniert z. B.
-`"gemini-2.5-flash-lite"` oder ein späteres Modell direkt. `ai.provider` nur
+`"gemini-3.7-flash-lite"` oder ein späteres Modell direkt. `ai.provider` nur
 ändern, wenn auch ein anderer Provider-Key als Secret hinterlegt wird.
+
+**Das ist bereits einmal live passiert:** Der ursprünglich konfigurierte
+`gemini-2.5-flash` wurde von Google zwischen Einrichtung und erstem Testlauf
+für neue API-Keys abgeschaltet ("This model ... is no longer available to new
+users", HTTP 404). Aktuell steht `gemini-3.7-flash`. Google pflegt Modelle nur
+befristet — wenn eine ganze Mail plötzlich wieder leer ankommt (siehe nächster
+Abschnitt), im Actions-Log nach `404` und `no longer available` suchen und den
+aktuellen Modellnamen unter [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models)
+nachschlagen. Bewusst *kein* `-latest`-Alias verwendet: Google gibt dafür nur
+eine 2-Wochen-Vorlaufzeit per E-Mail vor Breaking Changes, was für einen
+unbeaufsichtigten täglichen Lauf zu knapp ist — ein fester, stabiler Modellname
+ist vorhersehbarer, auch wenn er irgendwann manuell nachgezogen werden muss.
 
 ## Uhrzeit ändern
 
