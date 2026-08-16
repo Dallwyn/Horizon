@@ -257,52 +257,62 @@ class HorizonOrchestrator:
                 raise RuntimeError(self.last_fetch_report.failure_message())
 
             if not all_items:
-                self.console.print("[yellow]No new content found. Exiting.[/yellow]")
-                return
-
-            # 3. Merge cross-source duplicates (same URL from different sources)
-            merged_items = self.merge_cross_source_duplicates(all_items)
-            if len(merged_items) < len(all_items):
+                # Nothing to merge/analyze/filter/enrich — skip straight to sending
+                # a summary below so a genuinely quiet day doesn't skip the digest
+                # entirely (unlike the AI-provider-outage case, this shouldn't need
+                # any AI calls or full config to report).
                 self.console.print(
-                    f"{self.icons['merge']} Merged "
-                    f"{len(all_items) - len(merged_items)} cross-source duplicates "
-                    f"→ {len(merged_items)} unique items\n"
+                    "[yellow]No new content found from any source. "
+                    "Still sending a summary so the digest doesn't silently skip a day."
+                    "[/yellow]"
+                )
+                important_items: List[ContentItem] = []
+                analyzed_items: List[ContentItem] = []
+                score_missing_count = 0
+            else:
+                # 3. Merge cross-source duplicates (same URL from different sources)
+                merged_items = self.merge_cross_source_duplicates(all_items)
+                if len(merged_items) < len(all_items):
+                    self.console.print(
+                        f"{self.icons['merge']} Merged "
+                        f"{len(all_items) - len(merged_items)} cross-source duplicates "
+                        f"→ {len(merged_items)} unique items\n"
+                    )
+
+                # 4. Analyze with AI
+                analyzed_items = await self.analyze_items(merged_items)
+                self.console.print(
+                    f"{self.icons['ai']} Analyzed {len(analyzed_items)} items with AI\n"
                 )
 
-            # 4. Analyze with AI
-            analyzed_items = await self.analyze_items(merged_items)
-            self.console.print(
-                f"{self.icons['ai']} Analyzed {len(analyzed_items)} items with AI\n"
-            )
+                # 5. Filter, deduplicate, and balance the digest
+                filtering_result = await self.select_digest_items(
+                    analyzed_items,
+                )
+                important_items = filtering_result.items
 
-            # 5. Filter, deduplicate, and balance the digest
-            filtering_result = await self.select_digest_items(
-                analyzed_items,
-            )
-            important_items = filtering_result.items
+                # Show per-sub-source selection breakdown
+                selected_counts: Dict[str, int] = defaultdict(int)
+                for item in important_items:
+                    key = f"{item.source_type.value}/{self._sub_source_label(item)}"
+                    selected_counts[key] += 1
+                for source_key, count in sorted(selected_counts.items()):
+                    self.console.print(f"      {self.icons['detail']} {source_key}: {count}")
+                self.console.print("")
 
-            # Show per-sub-source selection breakdown
-            selected_counts: Dict[str, int] = defaultdict(int)
-            for item in important_items:
-                key = f"{item.source_type.value}/{self._sub_source_label(item)}"
-                selected_counts[key] += 1
-            for source_key, count in sorted(selected_counts.items()):
-                self.console.print(f"      {self.icons['detail']} {source_key}: {count}")
-            self.console.print("")
+                # 6. Search related stories + enrich with background knowledge (2nd AI pass)
+                await self.enrich_items(important_items)
 
-            # 6. Search related stories + enrich with background knowledge (2nd AI pass)
-            await self.enrich_items(important_items)
-
-            # Items whose AI score could never be parsed are indistinguishable from
-            # "below threshold" once filtered — surface the count separately so an
-            # empty digest can point at an AI-provider issue instead of a quiet day.
-            score_missing_count = sum(
-                1
-                for item in analyzed_items
-                if item.processing
-                and item.processing.analysis
-                and item.processing.analysis.score is None
-            )
+                # Items whose AI score could never be parsed are indistinguishable from
+                # "below threshold" once filtered — surface the count separately so an
+                # empty digest can point at an AI-provider issue instead of a quiet day.
+                score_missing_count = sum(
+                    1
+                    for item in analyzed_items
+                    if item.processing
+                    and item.processing.analysis
+                    and item.processing.analysis.score is None
+                )
 
             # 7. Generate and save daily summaries for each configured language
             today = self._report_date()

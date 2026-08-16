@@ -147,8 +147,10 @@ def test_native_run_treats_all_success_empty_as_no_content(monkeypatch) -> None:
     orchestrator.config = SimpleNamespace(  # type: ignore[assignment]
         email=None,
         collection=SimpleNamespace(time_window_hours=24),
+        ai=SimpleNamespace(languages=[]),
     )
     orchestrator.email_manager = None
+    orchestrator.webhook_notifier = None
     send_failure = AsyncMock()
     orchestrator.webhook_notifier = SimpleNamespace(send_failure=send_failure)  # type: ignore[assignment]
 
@@ -159,7 +161,51 @@ def test_native_run_treats_all_success_empty_as_no_content(monkeypatch) -> None:
         return []
 
     monkeypatch.setattr(orchestrator, "fetch_all_sources", fetch_all_sources)
+    monkeypatch.setattr(orchestrator, "_report_date", lambda: "2026-01-01")
 
     asyncio.run(orchestrator.run())
 
     send_failure.assert_not_awaited()
+
+
+def test_native_run_still_sends_summary_when_nothing_fetched(tmp_path, monkeypatch) -> None:
+    """A genuinely quiet day (zero raw items from every source) must still produce
+    and send a digest, instead of silently skipping the day."""
+    from pathlib import Path
+
+    from src.models import AIConfig, Config, DigestConfig, SourcesConfig
+
+    config = Config(
+        ai=AIConfig(
+            provider="openai",
+            model="test",
+            api_key_env="TEST_API_KEY",
+            languages=["de"],
+        ),
+        sources=SourcesConfig(),
+        digest=DigestConfig(),
+    )
+    saved: dict = {}
+
+    class StubStorage:
+        def save_daily_summary(self, date, summary, language):  # type: ignore[no-untyped-def]
+            saved["date"] = date
+            saved["summary"] = summary
+            saved["language"] = language
+            return Path("summary.md")
+
+        def load_subscribers(self):  # type: ignore[no-untyped-def]
+            return []
+
+    orchestrator = HorizonOrchestrator(config, StubStorage())
+
+    async def fetch_all_sources(since):  # type: ignore[no-untyped-def]
+        return []
+
+    monkeypatch.setattr(orchestrator, "fetch_all_sources", fetch_all_sources)
+    monkeypatch.chdir(tmp_path)
+
+    asyncio.run(orchestrator.run())
+
+    assert saved["language"] == "de"
+    assert "Tagesüberblick" in saved["summary"]
