@@ -58,11 +58,14 @@ Zwei unabhängige Stellschrauben in `data/config.github.json`, beide unter
   Bewusst hoch, weil die Rubrik in `profiles/tech-news/analysis.md` nach
   "bahnbrechend/wichtige Ankündigung" fragt — für echte Firmen-Announcements
   angemessen.
-- **`tech-blog.threshold` (aktuell 4.5):** gilt für alle 6 YouTube-Kanäle. Die
-  Rubrik in `profiles/tech-blog/analysis.md` fragt stattdessen "lohnt sich das
-  gründliche Lesen/Ansehen, bringt es mir übertragbares Wissen" — deutlich
-  passender für Tutorial-/Praxis-Content als der "bahnbrechend"-Maßstab von
-  tech-news, unter dem die YouTube-Kanäle anfangs kaum etwas durchließen.
+- **`tech-blog.threshold` (aktuell `null`, also kein Filter):** gilt für alle 7
+  YouTube-Kanäle. War anfangs 4.5 — die Rubrik in
+  `profiles/tech-blog/analysis.md` fragt "lohnt sich das gründliche
+  Lesen/Ansehen, bringt es mir übertragbares Wissen", was auch bei 4.5 noch
+  vereinzelt Videos rausgefiltert hat. Bewusst auf `null` gestellt, weil jedes
+  neue Video der bewusst ausgewählten Kanäle unabhängig vom KI-Score in die
+  Mail soll — Kehrseite: an ruhigen Tagen kann das mehr Rauschen bedeuten, da
+  keine Qualitäts-/Relevanzprüfung mehr stattfindet.
 
 Threshold-Werte: `0`–`10`, oder `null` für "kein Filter" (dann kommt alles
 durch, was thematisch passt — kann an ruhigen Tagen sehr viel Rauschen sein).
