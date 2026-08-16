@@ -87,6 +87,13 @@
         "profile": "tech-blog"
       },
       {
+        "name": "Leonard Schmedding",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCiKCgeGNFCoLF086q-Bl-HA",
+        "enabled": true,
+        "category": "youtube-ai",
+        "profile": "tech-blog"
+      },
+      {
         "name": "OpenAI News",
         "url": "https://openai.com/news/rss.xml",
         "enabled": true,

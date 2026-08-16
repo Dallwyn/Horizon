@@ -7,7 +7,7 @@ Für die allgemeine Projekt-Doku siehe [README.md](README.md) und
 ## Was hier eingerichtet ist
 
 - **KI-Provider:** Google Gemini 2.5 Flash (kostenlos, kein Claude-/OpenAI-Key).
-- **Quellen:** 6 YouTube-Kanäle (als RSS), OpenAI News RSS, Google DeepMind Blog RSS,
+- **Quellen:** 7 YouTube-Kanäle (als RSS), OpenAI News RSS, Google DeepMind Blog RSS,
   und ein selbstgebauter Anthropic-News-Scraper (Anthropic hat keinen RSS-Feed).
 - **Sprache:** Deutsch (`ai.languages: ["de"]`).
 - **Versand:** E-Mail via Gmail-SMTP, ein fester Empfänger, kein Subscribe/Unsubscribe.
@@ -79,6 +79,7 @@ Aktuell konfigurierte Kanal-IDs (verifiziert per RSS-Feed-Titel-Abgleich):
 | Nate Herk \| AI Automation | `UC2ojq-nuP8ceeHqiroeKhBA` |
 | AI Impact | `UCnNA2EuEVybpo3WGEace4HQ` |
 | Christoph Magnussen | `UCDx6L69jmKBJbNu5GnkCilg` |
+| Leonard Schmedding | `UCiKCgeGNFCoLF086q-Bl-HA` |
 
 ## Modell wechseln
 
